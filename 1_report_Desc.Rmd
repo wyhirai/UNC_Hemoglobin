@@ -1,0 +1,90 @@
+---
+title: "Factors impacting hemoglobin A clearance in adults with sickle cell anemia on chronic transfusion therapy"
+subtitle: 'Investigators: Alexandre Soares'
+output: 
+  word_document:
+    toc: true
+    toc_depth: 4
+  html_document: 
+    toc: true
+    toc_depth: 4
+    keep_md: true
+      code_folding: "hide"    
+editor_options: 
+  chunk_output_type: console
+---
+
+Every analysis above were execute using the language `r R.version$version.string` and o software IDE (Integrated Development Environment) RStudio. Also the reports in format PDF was development for library `rmarkdown`.
+
+Welinton Yoshio Hirai^[wyhirai@gmail.com]
+
+```{r setup, include=F}
+#clear environment
+rm(list=ls(all=T))
+
+#configurações iniciais para os chunks
+knitr::opts_chunk$set(
+  fig.width = 12, fig.height = 8,
+  res = 300, fig.retina = 1,
+  fig.align = 'center', fig.pos = 'H',
+  echo = F, cache = F, warning = F, 
+  message = F, packages = F,
+  dev = c('png', 'pdf')
+)
+
+setwd("D:/Github/UNC_Hemoglobin")
+
+source(file = '0_header.R')
+```
+
+# Análise 4 - Novo grupos para a variável de SCD Genotype
+
+O paciente 52 era o único que tinha gene: _S/beta zero thalassemia_
+
+```{r}
+data1_filter %>% 
+  dplyr::count(SCD_genotype_2CAT, scd_genotype_32) %>% 
+  flextable::flextable() %>% 
+  flextable::theme_vanilla()
+```
+
+- Identificar número total de pacientes e de procedimentos realizados.
+
+Número total de pacientes $n_{Patient} = 65$
+
+```{r}
+# length(unique(data1$patient_1))
+data2 %>% 
+  dplyr::count(patient_id) %>% 
+  dplyr::select(!patient_id) %>% 
+  gtsummary::tbl_summary(
+    label = list(n ~ 'n de procedimentos realizados'),
+    type = where(is.numeric) ~ 'continuous2',
+    statistic = where(is.numeric) ~ c('{mean} ({sd})',
+                                      '{min} | {median} | {max}')
+  ) %>% 
+  gtsummary::bold_labels() %>% 
+  gtsummary::as_flex_table() %>%
+  flextable::theme_vanilla() 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
