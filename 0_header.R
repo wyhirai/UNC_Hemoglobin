@@ -57,9 +57,9 @@ data1_filter <-
     
   )
 
-write.csv(tab1_names, './output/names_var_Pacient.csv', row.names = F)
+# write.csv(tab1_names, './output/names_var_Pacient.csv', row.names = F)
 
-# 3.2 Plan: Y25M02D23_BD - Sheet: Mester RCE Info ---------------------------------------------------------
+# 3.2 Plan: Y25M02D23_BD - Sheet: Master RCE Info ---------------------------------------------------------
 
 BD_RCE <- read_excel("./input/Y25M02D23_BD.xlsx", sheet = 'Master RCE Info')
 
@@ -81,15 +81,69 @@ tab2_names <-
     Code_Names = 'DIFF_Between_RCE'
   )
 
-write.csv(tab2_names, './output/names_var_RCE.csv', row.names = F)
+# write.csv(tab2_names, './output/names_var_RCE.csv', row.names = F)
+
+# 3.3 Plan: Y25M02D23_BD - Sheet: ED Coding --------------------------------------------------------
+# Emergency Department (ED)
+
+BD3_ED <- read_excel("./input/Y25M02D23_BD.xlsx", sheet = 'ED Coding') 
+
+tab3_names <- 
+  data.frame(Names = names(BD3_ED),
+             Code_Names = janitor::make_clean_names(names(BD3_ED)))
+
+data3_ED <- BD3_ED
+names(data3_ED) <- tab3_names$Code_Names
+
+data3_ED_2 <-
+  data3_ED %>% 
+  tidyr::fill(patient_id, .direction = 'down') %>% 
+  dplyr::select(!data_of_rce) %>% 
+  dplyr::mutate(across(!patient_id, ~ .x %>% as.character)) %>% 
+  tidyr::pivot_longer(!patient_id) %>% 
+  tidyr::drop_na(value) %>% 
+  dplyr::count(patient_id) %>% 
+  magrittr::set_colnames(c('patient_id', 'count_EDvisits')) %>% 
+  dplyr::filter(patient_id != '52')
+
+write.csv(tab3_names, './output/names_var_EDCoding.csv', row.names = F)
+
+
+# 3.4 Plan: Y25M02D23_BD - Sheet: Hospital Admissions ----------------------------------------------------
+
+BD4_HAC <- read_excel("./input/Y25M02D23_BD.xlsx", sheet = 'Hospital Admissions Coding')
+
+tab4_names <- 
+  data.frame(Names = names(BD4_HAC),
+             Code_Names = janitor::make_clean_names(names(BD4_HAC)))
+
+data4_HAC <- BD4_HAC 
+names(data4_HAC) <- tab4_names$Code_Names
+
+data4_filter <- 
+  data4_HAC %>% 
+  tidyr::fill(patient_id, .direction = 'down') %>% 
+  dplyr::filter(patient_id != '52')
 
 # 4. Selected: Unit Observation - ID and Procedure ------------------------------------------------------
 
 data1_filter %>% dplyr::select(patient_1)
 
-data2_filter %>% 
-  dplyr::select(patient_id, rce_procedure_number, date_of_rce)
+test1 <- 
+  data2_filter %>% 
+  dplyr::select(patient_id, rce_procedure_number, date_of_rce) %>% 
+  tibble::add_column(BD1 = 'Master RCD')
 
+test2 <- 
+  data4_filter %>% 
+  dplyr::select(patient_id, data_of_rce) %>% 
+  tibble::add_column(BD2 = 'Hospital Admissions')
+
+test1 %>% 
+  dplyr::full_join(test2,
+                   by = join_by(patient_id == patient_id,
+                                date_of_rce == data_of_rce)) %>% 
+  View()
 
 # 4. Import End --------------------------------------------------------------------------------------------
 

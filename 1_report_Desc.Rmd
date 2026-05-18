@@ -48,43 +48,31 @@ data1_filter %>%
   flextable::theme_vanilla()
 ```
 
-- Identificar número total de pacientes e de procedimentos realizados.
 
-Número total de pacientes $n_{Patient} = 65$
+
+### Stratified Yes-RBC antibodies vs. No-RBC antibodies
 
 ```{r}
-# length(unique(data1$patient_1))
-data2 %>% 
-  dplyr::count(patient_id) %>% 
-  dplyr::select(!patient_id) %>% 
+data1_filter %>% 
+  dplyr::select(rbc_antibodies, age_years_2, height_cm_5,
+                weight_kg_6) %>% 
+  # dplyr::group_by(rbc_antibodies) %>% 
   gtsummary::tbl_summary(
-    label = list(n ~ 'n de procedimentos realizados'),
+    by = rbc_antibodies,
+    label = list(
+      age_years_2 ~ 'Age',
+      height_cm_5 ~ 'Height (cm)',
+      weight_kg_6 ~ 'Weight (kg)'
+    ),
     type = where(is.numeric) ~ 'continuous2',
-    statistic = where(is.numeric) ~ c('{mean} ({sd})',
-                                      '{min} | {median} | {max}')
+    statistic = list(all_continuous() ~ c('{mean} ({sd})',
+                                          '{median}',
+                                          '{min} - {max}',
+                                          '{p25} - {p75}'))
   ) %>% 
+  gtsummary::add_p(pvalue_fun = label_style_pvalue(digits = 2)) %>% 
+  gtsummary::modify_header(label = "**RBC antibodies**") %>% 
   gtsummary::bold_labels() %>% 
   gtsummary::as_flex_table() %>%
-  flextable::theme_vanilla() 
+  flextable::theme_vanilla()
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
