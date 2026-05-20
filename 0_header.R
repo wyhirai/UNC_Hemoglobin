@@ -12,7 +12,6 @@ library(ggeffects); library(emmeans)
 library(readxl)
 library(lubridate)
 
-
 # 2. Functions Stats ---------------------------------------------------------------------------------------
 
 my_stats <- function(data, variable, ...) {
@@ -23,6 +22,10 @@ my_stats <- function(data, variable, ...) {
     IQR = IQR
   )
 }
+
+wyh_theme <- 
+  theme_bw(base_size = 15) +
+  theme(axis.text = element_text(colour = 'black'), legend.position = 'top')
 
 # 3. Import Data -------------------------------------------------------------------------------------------
 
@@ -55,7 +58,16 @@ data1_filter <-
       scd_genotype_7 %in% c('Other', 'HbS beta Indianapolis',
                             'sickle cell beta plus thalassemia') ~ NA)
     
-  )
+  ) %>% 
+  #new variable
+  dplyr::mutate(
+    rbc_antibodies_new = case_when(
+      (h_o_rbc_alloantibodies == 'Yes' | h_o_rbc_autoantibodies == 'Yes') & allo_ab_1_yes_0_no == 0 ~ 'Group 1',
+      h_o_rbc_alloantibodies == 'No' & h_o_rbc_autoantibodies == 'No' & allo_ab_1_yes_0_no == 1 ~ 'Group 2',
+      (h_o_rbc_alloantibodies == 'Yes' | h_o_rbc_autoantibodies == 'Yes') & allo_ab_1_yes_0_no == 1 ~ 'Group 3',
+      h_o_rbc_alloantibodies == 'No' & h_o_rbc_autoantibodies == 'No' & allo_ab_1_yes_0_no == 0 ~ 'Group 4',
+    )
+  ) 
 
 # write.csv(tab1_names, './output/names_var_Pacient.csv', row.names = F)
 
@@ -72,7 +84,15 @@ names(data2) <- tab2_names$Code_Names
 
 data2_filter <- 
   data2 %>% 
-  dplyr::filter(patient_id != '52')
+  dplyr::filter(patient_id != '52') %>% 
+  dplyr::mutate(
+    goal_target_post_rce_hct_percent = as.numeric(goal_target_post_rce_hct_percent),
+    post_rce_hct_percent = as.numeric(post_rce_hct_percent),
+    dhtr_likelihood_nomogram_results = dhtr_likelihood_nomogram_results %>% as.factor() %>% forcats::fct_na_level_to_value('N/A')
+  ) %>% 
+  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ .x %>% stringr::str_to_lower())) %>% 
+  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ if_else(.x == 'not assessed', NA, .x))) %>% 
+  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ .x %>% as.numeric()))
 
 tab2_names <- 
   tab2_names %>% 
@@ -83,30 +103,23 @@ tab2_names <-
 
 # write.csv(tab2_names, './output/names_var_RCE.csv', row.names = F)
 
-# 3.3 Plan: Y25M02D23_BD - Sheet: ED Coding --------------------------------------------------------
+# 3.3 Plan: DataAdditional - Sheet: ED Coding --------------------------------------------------------
 # Emergency Department (ED)
+BD_EDCodding <- read_excel("./input/DataAdditional.xlsx", sheet = "ED Coding") 
 
-BD3_ED <- read_excel("./input/Y25M02D23_BD.xlsx", sheet = 'ED Coding') 
+tab6_names <- 
+  data.frame(Names = names(BD_EDCodding),
+             Code_Names = janitor::make_clean_names(names(BD_EDCodding)))
 
-tab3_names <- 
-  data.frame(Names = names(BD3_ED),
-             Code_Names = janitor::make_clean_names(names(BD3_ED)))
+names(BD_EDCodding) <- tab6_names$Code_Names
 
-data3_ED <- BD3_ED
-names(data3_ED) <- tab3_names$Code_Names
-
-data3_ED_2 <-
-  data3_ED %>% 
+data_addi2 <- 
+  BD_EDCodding %>% 
+  dplyr::mutate(data_of_rce = lubridate::ymd(data_of_rce)) %>% 
   tidyr::fill(patient_id, .direction = 'down') %>% 
-  dplyr::select(!data_of_rce) %>% 
-  dplyr::mutate(across(!patient_id, ~ .x %>% as.character)) %>% 
-  tidyr::pivot_longer(!patient_id) %>% 
-  tidyr::drop_na(value) %>% 
-  dplyr::count(patient_id) %>% 
-  magrittr::set_colnames(c('patient_id', 'count_EDvisits')) %>% 
-  dplyr::filter(patient_id != '52')
-
-write.csv(tab3_names, './output/names_var_EDCoding.csv', row.names = F)
+  dplyr::mutate(across(!c(patient_id, data_of_rce), ~ .x %>% as.character())) %>% 
+  tidyr::pivot_longer(!c(patient_id, data_of_rce)) %>% 
+  dplyr::mutate(value = if_else(value == 'TRUE', '1', value)) 
 
 
 # 3.4 Plan: Y25M02D23_BD - Sheet: Hospital Admissions ----------------------------------------------------
@@ -125,31 +138,28 @@ data4_filter <-
   tidyr::fill(patient_id, .direction = 'down') %>% 
   dplyr::filter(patient_id != '52')
 
-# 4. Selected: Unit Observation - ID and Procedure ------------------------------------------------------
 
-data1_filter %>% dplyr::select(patient_1)
+# 3.5 Plan: DataAdditional - Sheet: Age Unit -----------------------------------------------------------------
 
-test1 <- 
-  data2_filter %>% 
-  dplyr::select(patient_id, rce_procedure_number, date_of_rce) %>% 
-  tibble::add_column(BD1 = 'Master RCD')
+### Age Unit
 
-test2 <- 
-  data4_filter %>% 
-  dplyr::select(patient_id, data_of_rce) %>% 
-  tibble::add_column(BD2 = 'Hospital Admissions')
+DataAdditional <- 
+  read_excel("./input/DataAdditional.xlsx", sheet = "Age Unit") %>% 
+  dplyr::mutate(TMS_DATEOFTRNSFSN = lubridate::ymd(TMS_DATEOFTRNSFSN))
 
-test1 %>% 
-  dplyr::full_join(test2,
-                   by = join_by(patient_id == patient_id,
-                                date_of_rce == data_of_rce)) %>% 
-  View()
+tab5_names <- 
+  data.frame(Names = names(DataAdditional),
+             Code_Names = janitor::make_clean_names(names(DataAdditional)))
+
+data_addi <- DataAdditional
+names(data_addi) <- tab5_names$Code_Names
 
 # 4. Import End --------------------------------------------------------------------------------------------
 
-envir_end <- c('my_stats', 'data1_filter', 'data2_filter') 
+envir_end <- c('my_stats', 'wyh_theme',
+               'data1_filter', 'data2_filter', 'data4_filter', 'data_addi2') 
 
-rm(list = setdiff(ls(), envir_end))
+# rm(list = setdiff(ls(), envir_end))
 
 
 
