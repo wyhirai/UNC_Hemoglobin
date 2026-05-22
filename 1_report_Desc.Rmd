@@ -2,9 +2,14 @@
 title: "Factors impacting hemoglobin A clearance in adults with sickle cell anemia on chronic transfusion therapy"
 subtitle: 'Investigators: Alexandre Soares'
 output: 
+  word_document: 
+    toc: true
+    toc_depth: 4
   html_document: 
     toc: true
     toc_depth: 4
+    fig_caption: true
+    keep_md: true
 editor_options: 
   chunk_output_type: console
 ---
@@ -44,12 +49,132 @@ data2_filter %>%
   wyh_theme
 ```
 
-# Análise 2a - Seleção dos dados de ED e Admission para os códigos 1, 2, 3, 4, …, 9; excluindo os códigos 10, 11, e 12;
+# Análise 2a - Verificar a correlação entre adminissão de Delta HBC (%)
+
+Seleção dos dados de ED e Admission para os códigos 1, 2, 3, 4, …, 9; excluindo os códigos 10, 11, e 12;
 
 ```{r}
 data_addi2 %>% 
   dplyr::count(value) %>% 
-  flextable::flextable() 
+  flextable::flextable() %>% 
+  flextable::set_caption(caption = 'Tabela contagem ED Coding')
+```
+
+```{r}
+corr_test <- 
+  data_addi2 %>% 
+  dplyr::filter(!is.na(value)) %>%
+  dplyr::count(patient_id, data_of_rce, value) %>% 
+  dplyr::right_join(data2_filter %>% 
+                      dplyr::select(patient_id, date_of_rce, DeltaHbA),
+                    by = join_by(patient_id == patient_id,
+                                 data_of_rce  == date_of_rce)) 
+
+corr_test %>% 
+  rstatix::cor_test(n, DeltaHbA, method = 'spearman')
+
+corr_test %>% 
+  ggplot(aes(n, DeltaHbA)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  scale_x_continuous(breaks = seq(0, 21, 3)) +
+  labs(x = 'Número de ED Coding', y = 'Delta HbA (%)',
+       subtitle = 'Correlação Spearman: -0,17 (p-valor: 0.015)') +
+  wyh_theme
+```
+
+```{r}
+data_Hos_Admi %>% 
+  dplyr::count(value) %>% 
+  flextable::flextable() %>% 
+  flextable::set_caption(caption = 'Tabela contagem Hospital Admission')
+```
+
+```{r}
+corr_test <- 
+  data_Hos_Admi %>% 
+  dplyr::filter(!is.na(value)) %>%
+  dplyr::count(patient_id, data_of_rce, value) %>% 
+  dplyr::right_join(data2_filter %>% 
+                      dplyr::select(patient_id, date_of_rce, DeltaHbA),
+                    by = join_by(patient_id == patient_id,
+                                 data_of_rce  == date_of_rce)) 
+
+corr_test %>% 
+  rstatix::cor_test(n, DeltaHbA, method = 'spearman')
+
+corr_test %>% 
+  ggplot(aes(n, DeltaHbA)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  scale_x_continuous(breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9)) +
+  labs(x = 'Número de Hospital Admission', y = 'Delta HbA (%)',
+       subtitle = 'Correlação Spearman: -0,025 (p-valor: 0.817)') +
+  wyh_theme
+```
+
+# Análise 2a - Verificar a correlação entre adminissão de Delta HBC (g/dL)
+
+Seleção dos dados de ED e Admission para os códigos 1, 2, 3, 4, …, 9; excluindo os códigos 10, 11, e 12;
+
+```{r}
+data_addi2 %>% 
+  dplyr::count(value) %>% 
+  flextable::flextable() %>% 
+  flextable::set_caption(caption = 'Tabela contagem ED Coding')
+```
+
+```{r}
+corr_test <- 
+  data_addi2 %>% 
+  dplyr::filter(!is.na(value)) %>%
+  dplyr::count(patient_id, data_of_rce, value) %>% 
+  dplyr::right_join(data2_filter_gdL %>% 
+                      dplyr::select(patient_id, date_of_rce, DeltaHbA_gdL),
+                    by = join_by(patient_id == patient_id,
+                                 data_of_rce  == date_of_rce)) 
+
+corr_test %>% 
+  rstatix::cor_test(n, DeltaHbA_gdL, method = 'spearman')
+
+corr_test %>% 
+  ggplot(aes(n, DeltaHbA_gdL)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  scale_x_continuous(breaks = seq(0, 21, 3)) +
+  labs(x = 'Número de ED Coding', y = 'Delta HbA (g/dL)',
+       subtitle = 'Correlação Spearman: -0,22 (p-valor < 0.01)') +
+  wyh_theme
+```
+
+```{r}
+data_Hos_Admi %>% 
+  dplyr::count(value) %>% 
+  flextable::flextable() %>% 
+  flextable::set_caption(caption = 'Tabela contagem Hospital Admission')
+```
+
+```{r}
+corr_test <- 
+  data_Hos_Admi %>% 
+  dplyr::filter(!is.na(value)) %>%
+  dplyr::count(patient_id, data_of_rce, value) %>% 
+  dplyr::right_join(data2_filter_gdL %>% 
+                      dplyr::select(patient_id, date_of_rce, DeltaHbA_gdL),
+                    by = join_by(patient_id == patient_id,
+                                 data_of_rce  == date_of_rce)) 
+
+corr_test %>% 
+  rstatix::cor_test(n, DeltaHbA_gdL, method = 'spearman')
+
+corr_test %>% 
+  ggplot(aes(n, DeltaHbA_gdL)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  scale_x_continuous(breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9)) +
+  labs(x = 'Número de Hospital Admission', y = 'Delta HbA (%)',
+       subtitle = 'Correlação Spearman: -0,076 (p-valor: 0.49)') +
+  wyh_theme
 ```
 
 # Análise 2b - Correlação entre nível de admissão para as variáveis de Goal/Target Post-RCE HCT (%) com Post-RCE HT (%);
@@ -89,6 +214,33 @@ data1_filter %>%
   flextable::set_caption(caption = 'Nova variável')
 ```
 
+## Análise Univariada para Delta HBC (%)
+
+```{r}
+data_selected <- 
+  data2_filter %>% 
+  dplyr::select(patient_id, DeltaHbA) %>% 
+  dplyr::group_by(patient_id) %>% 
+  dplyr::summarise(mean_DeltaHbA_Porc = mean(DeltaHbA, na.rm = T)) %>% 
+  dplyr::left_join(data1_filter %>% 
+                     dplyr::select(patient_1, rbc_antibodies_new) 
+                   ,by = join_by('patient_id' == 'patient_1')) 
+```
+
+```{r}
+data_selected %>% 
+  dplyr::select(!patient_id) %>% 
+  gtsummary::tbl_uvregression(
+    y = mean_DeltaHbA_Porc,
+    method = lm
+  ) %>% 
+  gtsummary::bold_labels() %>% 
+  gtsummary::modify_header(label = "**Covariables**") %>% 
+  gtsummary::as_flex_table() %>%
+  flextable::theme_vanilla() %>%
+  flextable::set_caption(caption = 'Modelo de regressão linear simples')
+```
+
 # Análise 4 - Created new group to SCD Genotype. Excluding HbS beta Indianopolis, Other e sickle cell beta plus thalassemia and grouped S/beta zero thalassemia with SS for Group 1, and SS for group 2 (SCD_genotype_2CAT)
 
 O paciente 52 era o único que tinha gene: _S/beta zero thalassemia_
@@ -100,239 +252,244 @@ data1_filter %>%
   flextable::theme_vanilla()
 ```
 
-# Coorte do estudo
-
-- Excluindo o paciente 52;
-
-- Excluindo procedimentos que tiveram Transfusão simples de hemácias desde RCE anterior ( _Simple RBC Transfusion Since Previous RCE?_ );
+## Análise Univariada para Delta HBC (%)
 
 ```{r}
-names_tab <- 
-  tab2_names %>% 
-  dplyr::filter(Code_Names %in% c('patient_id', 
-                                  'date_of_rce',
-                                  'simple_rbc_transfusion_since_previous_rce'))
-
-data2_filter %>% 
-  dplyr::select(patient_id,
-                date_of_rce,
-                simple_rbc_transfusion_since_previous_rce) %>% 
-  dplyr::mutate(date_of_rce = ymd(date_of_rce)) %>% 
-  dplyr::filter(simple_rbc_transfusion_since_previous_rce == 'Yes' |
-                  is.na(simple_rbc_transfusion_since_previous_rce)) %>% 
-  magrittr::set_colnames(names_tab$Names) %>% 
-  flextable::flextable() %>% 
-  flextable::theme_vanilla() %>% 
-  flextable::width(j = 1:3, width = c(.2, 1, 1))
-
-#atualização dos dados
-data2v2_filter <- 
+data_selected <- 
   data2_filter %>% 
-  dplyr::filter(simple_rbc_transfusion_since_previous_rce == 'No') %>% 
-  dplyr::mutate(date_of_rce = lubridate::ymd(date_of_rce)) 
-```
-
-Temos 65 pacientes, e 1.307 procedimentos
-
-```{r}
-data2v2_filter %>% 
-  dplyr::count(patient_id) %>% 
-  dplyr::arrange(-n) %>% 
-  flextable::flextable() %>% 
-  flextable::theme_vanilla() %>% 
-  flextable::set_caption(caption = paste('Frequência dos procedimentos pelos 65 pacientes - Totalizando 1307 procedimentos (sem filtro de Delta Hba)')) %>% 
-  flextable::width(width = c(.1, .2))
-```
-
-# Análises considerando DeltaHbA (%)
-
-Casos que foram excluidos pois não apresentagem valores para preHbA (Coluna AC) e/ou posHbA (Coluna AM)
-
-```{r}
-data2v2_filter %>% 
-  #Master RCE Info
-  dplyr::select(
-    patient_id, #Patient ID
-    date_of_rce, #Date of RCE
-    # days_between_exchanges,s #Days between exchanges
-    pre_a_percent, #Pre A %
-    post_a_percent #Post A %
-  ) %>% 
-  dplyr::filter(pre_a_percent == 'not assessed' | 
-                  post_a_percent == 'not assessed' | 
-                  pre_a_percent == 'Not assessed' | 
-                  post_a_percent == 'Not assessed' | 
-                  post_a_percent == 'N/A') %>% 
-  flextable::flextable() %>% 
-  flextable::theme_vanilla() %>% 
-  flextable::width(width = 1.2) %>% 
-  flextable::set_caption(caption = 'Tabela de procedimentos sem mensuração na coluna de preHbA ou posHba')
-```
-
-Número total de procedimentos RCE presentes em nossa corte que possuem ambos o preHbA e posHbA mensurados
-
-```{r}
-data_deltahba_porc <-
-  data2v2_filter %>% 
-  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ .x %>% stringr::str_to_lower())) %>% 
-  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ if_else(.x == 'not assessed', NA, .x))) %>% 
-  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ .x %>% as.numeric())) %>% 
+  dplyr::select(patient_id, DeltaHbA) %>% 
   dplyr::group_by(patient_id) %>% 
-  tidyr::drop_na(pre_a_percent, post_a_percent) %>% 
-  dplyr::mutate(RCE_Procedure = row_number()) %>%
-  dplyr::mutate(RCE_Procedure = paste('Procedure', RCE_Procedure, sep = '')) %>% 
-  dplyr::mutate(RCE_Procedure = factor(RCE_Procedure, levels = paste('Procedure', 1:53, sep = ''))) %>% 
-  dplyr::mutate(DIFF_Between_RCE = as.numeric(date_of_rce - lag(date_of_rce))) %>%  #cálculo entre data de RCE para cada paciente
-  dplyr::mutate(DeltaHbA = ((post_a_percent - lead(pre_a_percent))/lead(DIFF_Between_RCE))*28) %>% 
-  # dplyr::select(patient_id, RCE_Procedure, pre_a_percent, post_a_percent, date_of_rce, DIFF_Between_RCE, DeltaHbA) %>% 
-  dplyr::ungroup() 
-```
-
-```{r}
-data_deltahba_porc %>% 
-  dplyr::select(patient_id, RCE_Procedure, pre_a_percent, post_a_percent, date_of_rce, DIFF_Between_RCE, DeltaHbA) %>%
-  dplyr::filter(patient_id == '1') %>% 
-  flextable::flextable() %>% 
-  flextable::theme_vanilla() %>% 
-  flextable::set_caption(caption = 'Selecionando o paciente 1 para exemplo do cálculo do Delta HBA')
-```
-
-
-```{r}
-data_deltahba_porc %>% 
-  dplyr::select(DIFF_Between_RCE) %>% 
-  gtsummary::tbl_summary(
-    type = where(is.numeric) ~ 'continuous2',
-    statistic = where(is.numeric) ~ c('{mean} ({sd})',
-                                      '{min} | {median} | {max}')
-  ) %>% 
-  gtsummary::bold_labels() %>% 
-  gtsummary::as_flex_table() %>%
-  flextable::theme_vanilla() %>% 
-  flextable::set_caption(caption = 'Tabela descritiva para Diferença entre da data de procedimentos')
-```
-
-```{r}
-data_deltahba_porc %>%
-  dplyr::count(patient_id) %>% 
-  dplyr::arrange(-n) %>% 
-  flextable::flextable() %>% 
-  flextable::theme_vanilla() %>% 
-  flextable::set_caption(caption = paste('Frequência dos procedimentos pelos 65 pacientes - Totalizando 1294 procedimentos (com filtro de Delta HbA Porcentagem)')) %>% 
-  flextable::width(width = c(1, 1))
-```
-
-## Identificando o valor de Delta HbA para aqueles que apresentam aloanticorpos para hemácia
-
-```{r}
-id_selected <- 
-  data_deltahba_porc %>% 
-  dplyr::filter(pre_rce_type_screen_new_rbc_alloantibodies == 'Yes') %>% 
-  magrittr::extract2('patient_id')
-
-data_selected_3 <-
-  data_deltahba_porc %>% 
-  dplyr::group_by(patient_id) %>% 
-  dplyr::mutate(RCE_Procedure = row_number()) %>%
-  dplyr::filter(pre_rce_type_screen_new_rbc_alloantibodies == 'Yes') %>% 
-  dplyr::select(patient_id, RCE_Procedure) %>%
-  slice_head(n = 1)
-
-data_prepos_alloantibodies <-
-  data_deltahba_porc %>% 
-  dplyr::filter(patient_id %in% id_selected) %>% 
-  dplyr::group_by(patient_id) %>% 
-  dplyr::mutate(RCE_Procedure = row_number()) %>%
-  tidyr::nest() %>% 
-  dplyr::left_join(data_selected_3) %>% 
-  dplyr::mutate(data_change = purrr::map2(.x = data,
-                                          .y = RCE_Procedure,
-                                          .f = ~ .x %>% 
-                                            dplyr::mutate(Change_Alloantibodies = 
-                                                            if_else(
-                                                              RCE_Procedure >= .y,
-                                                              'Pos',
-                                                              'Pre'
-                                                            )))) %>% 
-  dplyr::select(!c(data, RCE_Procedure)) %>% 
-  tidyr::unnest(everything())
-```
-
-```{r, fig.width=20}
-levels_recordid <- 
-  data_deltahba_porc %>% 
-  dplyr::group_by(patient_id) %>% 
-  dplyr::summarise(median_DeltaHbA = median(DeltaHbA, na.rm = T)) %>% 
-  dplyr::arrange(median_DeltaHbA) %>% 
-  magrittr::extract2('patient_id')
-
-data_prepos_alloantibodies %>% 
-  dplyr::mutate(patient_id = factor(patient_id, levels = levels_recordid)) %>% 
-  dplyr::mutate(Change_Alloantibodies = factor(Change_Alloantibodies, 
-                                               levels = c('Pre', 'Pos'),
-                                               labels = c('Prior', 'Post'))) %>% 
-  ggplot(aes(x = patient_id, y = DeltaHbA,
-             fill = Change_Alloantibodies)) +
-  geom_boxplot() +
-  theme_bw(base_size = 14) +
-  theme(axis.text = element_text(color = 'black')) +
-  scale_y_continuous(n.breaks = 25, minor_breaks = NULL)
-```
-
-## Análise para rbc_antibodies (RBC Autoantibodies)
-
-```{r}
-data_mixedmodels <-
-  data_deltahba_porc %>%
-  #Master RCE Info
-  dplyr::select(
-    patient_id, #Patient ID
-    date_of_rce, #Date of RCE
-    RCE_Procedure,
-    pre_a_percent, #Pre A %
-    post_a_percent, #Post A %
-    goal_target_post_rce_hct_percent, #Goal/Target Post-RCE HCT (%)
-    goal_target_post_rce_hb_s_percent, #Goal/Target Post-RCE HbS (%)
-    pre_rce_hb_g_d_l, #Pre-RCE Hb (g/dL)
-    pre_rce_hb_s_percent, #Pre-RCE HbS (%)
-    pre_rce_type_screen_new_rbc_alloantibodies,
-    post_rce_hb_g_d_l, #Post-RCE Hb (g/dL)
-    post_rce_hb_s_percent, #Post-RCE HbS (%)
-    DIFF_Between_RCE #adicionar variável
-  ) %>%
-  dplyr::left_join(data1_filter %>% dplyr::select(patient_1, rbc_antibodies),
-                   by = join_by(patient_id == patient_1)) %>%
-  # dplyr::select(patient_id, RCE_Procedure, rbc_antibodies, pre_rce_hb_s_percent) %>%
-  dplyr::mutate(patient_id = as.factor(patient_id),
-                rbc_antibodies = as.factor(rbc_antibodies)) %>% 
-  dplyr::ungroup()
-```
-
-## Nomograma 
-
-```{r}
-data_deltahba_porc %>%
-  #Master RCE Info
-  dplyr::select(
-    patient_id, #Patient ID
-    date_of_rce, #Date of RCE
-    dhtr_likelihood_nomogram_results,
-    DeltaHbA
-  ) %>%
+  dplyr::summarise(mean_DeltaHbA_Porc = mean(DeltaHbA, na.rm = T)) %>% 
   dplyr::left_join(data1_filter %>% 
-                     dplyr::select(patient_1, 
-                                   rbc_antibodies),
-                   by = join_by(patient_id == patient_1)) %>%
-  dplyr::select(dhtr_likelihood_nomogram_results, DeltaHbA) %>% 
-  gtsummary::tbl_summary(
-    by = dhtr_likelihood_nomogram_results,
-    type = where(is.numeric) ~ 'continuous2',
-    statistic = list(all_continuous() ~ c('{mean} ({sd})',
-                                          '{median}',
-                                          '{min} - {max}',
-                                          '{p25} - {p75}'))
+                     dplyr::select(patient_1, SCD_genotype_2CAT) 
+                   ,by = join_by('patient_id' == 'patient_1')) %>% 
+  dplyr::mutate(SCD_genotype_2CAT = 
+                  SCD_genotype_2CAT %>% 
+                  as.factor() %>% 
+                  relevel('Group 1 - SS/SBO thal'))
+```
+
+```{r}
+data_selected %>% 
+  dplyr::select(!patient_id) %>% 
+  gtsummary::tbl_uvregression(
+    y = mean_DeltaHbA_Porc,
+    method = lm
   ) %>% 
   gtsummary::bold_labels() %>% 
+  gtsummary::modify_header(label = "**Covariables**") %>% 
   gtsummary::as_flex_table() %>%
-  flextable::theme_vanilla() 
+  flextable::theme_vanilla() %>%
+  flextable::set_caption(caption = 'Modelo de regressão linear simples')
+```
+
+# Regressão Multiplo para Delta HBC (%)
+
+```{r}
+# selected variables in BD Patient and BD Procedure
+# data_group_id
+# data_group_prop2 <- data_HbC_merge %>% dplyr::right_join(data_group_pro)
+
+# Fit mixed models
+data_model_mixed <-
+  data2_filter %>% 
+  dplyr::mutate(received_a_c_trait_unit = if_else(pre_rce_hb_c_percent < post_rce_hb_c_percent, 'Yes', 'No')) %>% 
+  dplyr::select(patient_id, 
+                DeltaHbA,
+                date_of_rce,
+                goal_target_post_rce_hct_percent, 
+                goal_target_post_rce_hb_s_percent,
+                pre_rce_hb_s_percent,
+                post_rce_hb_s_percent,
+                dhtr_likelihood_nomogram_results,
+                received_a_c_trait_unit) %>% 
+  dplyr::left_join(y = data_inner_age %>% 
+                     dplyr::group_by(tms_patnum, tms_dateoftrnsfsn) %>% 
+                     dplyr::summarise(mean_age_unit = mean(age_of_unit,
+                                                           na.rm = T)),
+                   by = join_by(patient_id == tms_patnum,
+                                date_of_rce == tms_dateoftrnsfsn)) %>% 
+  dplyr::left_join(y = data1_filter %>% 
+                     dplyr::select(patient_1, rbc_antibodies_new, age_years_2, 
+                                   height_cm_5, weight_kg_6, sex_3, SCD_genotype_2CAT),
+                   by = join_by(patient_id == patient_1))
+
+
+data_model_mixed <- 
+  data_model_mixed %>% 
+  dplyr::select(
+    #desfecho
+    DeltaHbA,
+    #mixed effects
+    patient_id, 
+    # date_of_rce,
+    rbc_antibodies_new,
+    # cov
+    age_years_2,
+    height_cm_5,
+    weight_kg_6,
+    sex_3,
+    SCD_genotype_2CAT,
+    goal_target_post_rce_hct_percent,
+    goal_target_post_rce_hb_s_percent,
+    pre_rce_hb_s_percent,
+    post_rce_hb_s_percent,
+    dhtr_likelihood_nomogram_results,
+    mean_age_unit,
+    received_a_c_trait_unit
+  ) %>% 
+  dplyr::mutate(
+    rbc_antibodies_new = factor(rbc_antibodies_new) %>% relevel('Group 1'),
+    sex_3 = factor(sex_3) %>% relevel('Female'),
+    SCD_genotype_2CAT = factor(SCD_genotype_2CAT) %>% relevel('Group 1 - SS/SBO thal'),
+    dhtr_likelihood_nomogram_results = factor(dhtr_likelihood_nomogram_results) %>% relevel('Low')
+  )
+```
+
+```{r}
+fitmixed_deltaporc <- 
+  lmerTest::lmer(DeltaHbA ~ 
+                   rbc_antibodies_new + 
+                   age_years_2 + 
+                   height_cm_5 + 
+                   weight_kg_6 + 
+                   sex_3 +
+                   SCD_genotype_2CAT +
+                   goal_target_post_rce_hct_percent + 
+                   goal_target_post_rce_hb_s_percent +
+                   dhtr_likelihood_nomogram_results +
+                   mean_age_unit +
+                   received_a_c_trait_unit + 
+                   (1 | patient_id),
+                 data = data_model_mixed)
+
+fitmixed_deltaporc %>% 
+  gtsummary::tbl_regression() %>% 
+  gtsummary::bold_labels() %>% 
+  gtsummary::modify_header(label = "**Covariables**") %>% 
+  gtsummary::as_flex_table() %>%
+  flextable::theme_vanilla() %>% 
+  flextable::set_caption(caption = 'Regressão Linear Múltipla Mista')
+```
+
+# Análise 4 - Created new group to SCD Genotype. Excluding HbS beta Indianopolis, Other e sickle cell beta plus thalassemia and grouped S/beta zero thalassemia with SS for Group 1, and SS for group 2 (SCD_genotype_2CAT)
+
+## Análise Univariada para Delta HBC (g/dL)
+
+```{r}
+data_selected <- 
+  data2_filter_gdL %>% 
+  dplyr::select(patient_id, DeltaHbA_gdL) %>% 
+  dplyr::group_by(patient_id) %>% 
+  dplyr::summarise(mean_DeltaHbA_Porc = mean(DeltaHbA_gdL, na.rm = T)) %>% 
+  dplyr::left_join(data1_filter %>% 
+                     dplyr::select(patient_1, SCD_genotype_2CAT) 
+                   ,by = join_by('patient_id' == 'patient_1')) %>% 
+  dplyr::mutate(SCD_genotype_2CAT = 
+                  SCD_genotype_2CAT %>% 
+                  as.factor() %>% 
+                  relevel('Group 1 - SS/SBO thal'))
+```
+
+```{r}
+data_selected %>% 
+  dplyr::select(!patient_id) %>% 
+  gtsummary::tbl_uvregression(
+    y = mean_DeltaHbA_Porc,
+    method = lm
+  ) %>% 
+  gtsummary::bold_labels() %>% 
+  gtsummary::modify_header(label = "**Covariables**") %>% 
+  gtsummary::as_flex_table() %>%
+  flextable::theme_vanilla() %>%
+  flextable::set_caption(caption = 'Modelo de regressão linear simples')
+```
+
+# Regressão Multiplo para Delta HBC (g/dL)
+
+```{r}
+# selected variables in BD Patient and BD Procedure
+# data_group_id
+# data_group_prop2 <- data_HbC_merge %>% dplyr::right_join(data_group_pro)
+
+# Fit mixed models
+data_model_mixed <-
+  data2_filter_gdL %>% 
+  dplyr::mutate(received_a_c_trait_unit = if_else(pre_rce_hb_c_percent < post_rce_hb_c_percent, 'Yes', 'No')) %>% 
+  dplyr::select(patient_id, 
+                DeltaHbA_gdL,
+                date_of_rce,
+                goal_target_post_rce_hct_percent, 
+                goal_target_post_rce_hb_s_percent,
+                pre_rce_hb_s_percent,
+                post_rce_hb_s_percent,
+                dhtr_likelihood_nomogram_results,
+                received_a_c_trait_unit) %>% 
+  dplyr::left_join(y = data_inner_age %>% 
+                     dplyr::group_by(tms_patnum, tms_dateoftrnsfsn) %>% 
+                     dplyr::summarise(mean_age_unit = mean(age_of_unit,
+                                                           na.rm = T)),
+                   by = join_by(patient_id == tms_patnum,
+                                date_of_rce == tms_dateoftrnsfsn)) %>% 
+  dplyr::left_join(y = data1_filter %>% 
+                     dplyr::select(patient_1, rbc_antibodies_new, age_years_2, 
+                                   height_cm_5, weight_kg_6, sex_3, SCD_genotype_2CAT),
+                   by = join_by(patient_id == patient_1))
+
+
+data_model_mixed <- 
+  data_model_mixed %>% 
+  dplyr::select(
+    #desfecho
+    DeltaHbA_gdL,
+    #mixed effects
+    patient_id, 
+    # date_of_rce,
+    rbc_antibodies_new,
+    # cov
+    age_years_2,
+    height_cm_5,
+    weight_kg_6,
+    sex_3,
+    SCD_genotype_2CAT,
+    goal_target_post_rce_hct_percent,
+    goal_target_post_rce_hb_s_percent,
+    pre_rce_hb_s_percent,
+    post_rce_hb_s_percent,
+    dhtr_likelihood_nomogram_results,
+    mean_age_unit,
+    received_a_c_trait_unit
+  ) %>% 
+  dplyr::mutate(
+    rbc_antibodies_new = factor(rbc_antibodies_new) %>% relevel('Group 1'),
+    sex_3 = factor(sex_3) %>% relevel('Female'),
+    SCD_genotype_2CAT = factor(SCD_genotype_2CAT) %>% relevel('Group 1 - SS/SBO thal'),
+    dhtr_likelihood_nomogram_results = factor(dhtr_likelihood_nomogram_results) %>% relevel('Low')
+  )
+```
+
+```{r}
+fitmixed_deltagdl <- 
+  lmerTest::lmer(DeltaHbA_gdL ~ 
+                   rbc_antibodies_new + 
+                   age_years_2 + 
+                   height_cm_5 + 
+                   weight_kg_6 + 
+                   sex_3 +
+                   SCD_genotype_2CAT +
+                   goal_target_post_rce_hct_percent + 
+                   goal_target_post_rce_hb_s_percent +
+                   dhtr_likelihood_nomogram_results +
+                   mean_age_unit +
+                   received_a_c_trait_unit + 
+                   (1 | patient_id),
+                 data = data_model_mixed)
+
+fitmixed_deltagdl %>% 
+  gtsummary::tbl_regression() %>% 
+  gtsummary::bold_labels() %>% 
+  gtsummary::modify_header(label = "**Covariables**") %>% 
+  gtsummary::as_flex_table() %>%
+  flextable::theme_vanilla() %>% 
+  flextable::set_caption(caption = 'Regressão Linear Múltipla Mista')
 ```

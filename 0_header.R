@@ -87,12 +87,31 @@ data2_filter <-
   dplyr::filter(patient_id != '52') %>% 
   dplyr::mutate(
     goal_target_post_rce_hct_percent = as.numeric(goal_target_post_rce_hct_percent),
+    goal_target_post_rce_hb_s_percent = as.numeric(goal_target_post_rce_hb_s_percent),
     post_rce_hct_percent = as.numeric(post_rce_hct_percent),
     dhtr_likelihood_nomogram_results = dhtr_likelihood_nomogram_results %>% as.factor() %>% forcats::fct_na_level_to_value('N/A')
   ) %>% 
   dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ .x %>% stringr::str_to_lower())) %>% 
   dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ if_else(.x == 'not assessed', NA, .x))) %>% 
-  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ .x %>% as.numeric()))
+  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ .x %>% as.numeric()))  %>% 
+  dplyr::group_by(patient_id) %>% 
+  tidyr::drop_na(pre_a_percent, post_a_percent) %>% 
+  dplyr::mutate(RCE_Procedure = row_number()) %>%
+  dplyr::mutate(RCE_Procedure = paste('Procedure', RCE_Procedure, sep = '')) %>% 
+  dplyr::mutate(RCE_Procedure = factor(RCE_Procedure, 
+                                       levels = paste('Procedure', 1:53, sep = ''))) %>% 
+  dplyr::mutate(DIFF_Between_RCE = as.numeric(date_of_rce - lag(date_of_rce))) %>%  #cálculo entre data de RCE para cada paciente
+  # Calculate Delta HbA (%) ====
+dplyr::mutate(
+  DeltaHbA = ((post_a_percent - lead(pre_a_percent))/lead(DIFF_Between_RCE))*28
+) %>% 
+  dplyr::ungroup()
+
+
+data2_filter %>% 
+  dplyr::filter(patient_id == 12) %>% 
+  dplyr::select(patient_id, RCE_Procedure, DeltaHbA) %>% 
+  View()
 
 tab2_names <- 
   tab2_names %>% 
@@ -101,7 +120,56 @@ tab2_names <-
     Code_Names = 'DIFF_Between_RCE'
   )
 
-# write.csv(tab2_names, './output/names_var_RCE.csv', row.names = F)
+
+var_selected <- c(
+  'pre_rce_hb_g_d_l', # Pre-RCE Hb (g/dL)
+  'pre_rce_hb_a1_percent', #Pre-RCE HbA1 (%)
+  'pre_rce_hb_a2_percent', #RCE HbA2 (%)
+  'pre_rce_hb_c_percent', #Pre-RCE HbC (%)
+  
+  'post_rce_hb_g_d_l', #Post-RCE Hb (g/dL)
+  'post_rce_hb_a1_percent', #Post-RCE HbA1 (%)
+  'post_rce_hb_a2_percent', #Post-RCE HbA2 (%)
+  'post_rce_hb_c_percent' #Post-RCE HbC (%)
+)
+
+data2_filter_gdL <- 
+  data2 %>% 
+  dplyr::filter(patient_id != '52') %>% 
+  dplyr::mutate(
+    goal_target_post_rce_hct_percent = as.numeric(goal_target_post_rce_hct_percent),
+    goal_target_post_rce_hb_s_percent = as.numeric(goal_target_post_rce_hb_s_percent),
+    post_rce_hct_percent = as.numeric(post_rce_hct_percent),
+    dhtr_likelihood_nomogram_results = dhtr_likelihood_nomogram_results %>% as.factor() %>% forcats::fct_na_level_to_value('N/A')
+  ) %>% 
+  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ .x %>% stringr::str_to_lower())) %>% 
+  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ if_else(.x == 'not assessed', NA, .x))) %>% 
+  dplyr::mutate(across(c(pre_a_percent, post_a_percent), ~ .x %>% as.numeric()))  %>% 
+  dplyr::group_by(patient_id) %>% 
+  tidyr::drop_na(pre_a_percent, post_a_percent) %>% 
+  dplyr::mutate(RCE_Procedure = row_number()) %>%
+  dplyr::mutate(RCE_Procedure = paste('Procedure', RCE_Procedure, sep = '')) %>% 
+  dplyr::mutate(RCE_Procedure = factor(RCE_Procedure, 
+                                       levels = paste('Procedure', 1:53, sep = ''))) %>% 
+  dplyr::mutate(DIFF_Between_RCE = as.numeric(date_of_rce - lag(date_of_rce))) %>%  #cálculo entre data de RCE para cada paciente
+  # Calculate Delta HbA (g/DL) ====
+dplyr::mutate(across(c(var_selected),
+                     ~ .x %>% as.numeric())) %>%
+  dplyr::mutate(
+    HbA_gdL_Pre = pre_rce_hb_g_d_l * (pre_rce_hb_a1_percent/100 + pre_rce_hb_a2_percent/100 + pre_rce_hb_c_percent/100),
+    HbA_gdL_Post = post_rce_hb_g_d_l * (post_rce_hb_a1_percent/100 + post_rce_hb_a2_percent/100 + post_rce_hb_c_percent/100)
+  ) %>% 
+  dplyr::mutate(
+    # cálculo do Delta HbA por g/dL
+    DeltaHbA_gdL = ((HbA_gdL_Post - lead(HbA_gdL_Pre))/lead(DIFF_Between_RCE))*28
+  ) %>% 
+  dplyr::ungroup() 
+
+data2_filter_gdL %>% 
+  dplyr::filter(patient_id == 12) %>% 
+  dplyr::select(patient_id, RCE_Procedure, DeltaHbA_gdL) %>% 
+  View()
+
 
 # 3.3 Plan: DataAdditional - Sheet: ED Coding --------------------------------------------------------
 # Emergency Department (ED)
@@ -119,8 +187,29 @@ data_addi2 <-
   tidyr::fill(patient_id, .direction = 'down') %>% 
   dplyr::mutate(across(!c(patient_id, data_of_rce), ~ .x %>% as.character())) %>% 
   tidyr::pivot_longer(!c(patient_id, data_of_rce)) %>% 
-  dplyr::mutate(value = if_else(value == 'TRUE', '1', value)) 
+  dplyr::mutate(value = if_else(value == 'TRUE', '1', value)) %>% 
+  dplyr::mutate(value = if_else(value %in% c('10', '10a', '10b', '10c', '10d', '10e', '10f', '10g', '11', '12'), 
+                                NA, value)) 
 
+# 3.4 Plan: DataAdditional - Sheet: Hospital Admission ---------------------------------------------------
+# Hospital Admission
+BD_HosAdm <- read_excel("./input/DataAdditional.xlsx", sheet = "Hospital Admission") 
+
+tab7_names <- 
+  data.frame(Names = names(BD_HosAdm),
+             Code_Names = janitor::make_clean_names(names(BD_HosAdm)))
+
+names(BD_HosAdm) <- tab7_names$Code_Names
+
+data_Hos_Admi <- 
+  BD_HosAdm %>% 
+  dplyr::mutate(data_of_rce = lubridate::ymd(data_of_rce)) %>% 
+  tidyr::fill(patient_id, .direction = 'down') %>% 
+  dplyr::mutate(across(!c(patient_id, data_of_rce), ~ .x %>% as.character())) %>% 
+  tidyr::pivot_longer(!c(patient_id, data_of_rce)) %>% 
+  dplyr::mutate(value = if_else(value == 'TRUE', '1', value)) %>% 
+  dplyr::mutate(value = if_else(value %in% c('10', '10a', '10b', '10c', '10d', '10e', '10f', '10g', '11', '12'), 
+                                NA, value)) 
 
 # 3.4 Plan: Y25M02D23_BD - Sheet: Hospital Admissions ----------------------------------------------------
 
@@ -153,6 +242,13 @@ tab5_names <-
 
 data_addi <- DataAdditional
 names(data_addi) <- tab5_names$Code_Names
+
+data_inner_age <- 
+  data_addi %>% 
+  dplyr::right_join(data2_filter %>% 
+                      dplyr::select(patient_id, date_of_rce),
+                    by = join_by(tms_patnum == patient_id,
+                                 tms_dateoftrnsfsn == date_of_rce)) 
 
 # 4. Import End --------------------------------------------------------------------------------------------
 
