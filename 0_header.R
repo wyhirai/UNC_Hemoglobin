@@ -58,16 +58,7 @@ data1_filter <-
       scd_genotype_7 %in% c('Other', 'HbS beta Indianapolis',
                             'sickle cell beta plus thalassemia') ~ NA)
     
-  ) %>% 
-  #new variable
-  dplyr::mutate(
-    rbc_antibodies_new = case_when(
-      (h_o_rbc_alloantibodies == 'Yes' | h_o_rbc_autoantibodies == 'Yes') & allo_ab_1_yes_0_no == 0 ~ 'Group 1',
-      h_o_rbc_alloantibodies == 'No' & h_o_rbc_autoantibodies == 'No' & allo_ab_1_yes_0_no == 1 ~ 'Group 2',
-      (h_o_rbc_alloantibodies == 'Yes' | h_o_rbc_autoantibodies == 'Yes') & allo_ab_1_yes_0_no == 1 ~ 'Group 3',
-      h_o_rbc_alloantibodies == 'No' & h_o_rbc_autoantibodies == 'No' & allo_ab_1_yes_0_no == 0 ~ 'Group 4',
-    )
-  ) 
+  )
 
 # write.csv(tab1_names, './output/names_var_Pacient.csv', row.names = F)
 
@@ -107,11 +98,45 @@ dplyr::mutate(
 ) %>% 
   dplyr::ungroup()
 
-
 data2_filter %>% 
-  dplyr::filter(patient_id == 12) %>% 
-  dplyr::select(patient_id, RCE_Procedure, DeltaHbA) %>% 
-  View()
+  dplyr::filter(alloab_1_yes_0_no == 1)
+
+
+# Calculated RBC Alloantibodies -------------------------------------------------------------------------
+calc_RBC_Alloantibodies <- 
+  data2_filter %>% 
+  dplyr::select(patient_id, 
+                pre_rce_type_screen_new_rbc_alloantibodies) %>% 
+  dplyr::group_by(patient_id) %>% 
+  dplyr::mutate(
+    ID_RBC_Alloantibodies = if_else(pre_rce_type_screen_new_rbc_alloantibodies == 'Yes',
+                                    1, 0)
+  ) %>% 
+  dplyr::summarise(
+    Count_Yes = sum(ID_RBC_Alloantibodies)
+  ) %>% 
+  dplyr::mutate(
+    Identif_RBC_Alloantiboies = if_else(Count_Yes != 0, 'Yes', 'No')
+  )
+
+data1_filter <- 
+  data1_filter %>% 
+  dplyr::left_join(calc_RBC_Alloantibodies,
+                   by = join_by(patient_1 == patient_id)) %>% 
+  #new variable
+  dplyr::mutate(
+    rbc_antibodies_new = case_when(
+      (h_o_rbc_alloantibodies == 'Yes' | h_o_rbc_autoantibodies == 'Yes') & Identif_RBC_Alloantiboies == 'No' ~ 'Group 1',
+      h_o_rbc_alloantibodies == 'No' & h_o_rbc_autoantibodies == 'No' & Identif_RBC_Alloantiboies == 'Yes' ~ 'Group 2',
+      (h_o_rbc_alloantibodies == 'Yes' | h_o_rbc_autoantibodies == 'Yes') & Identif_RBC_Alloantiboies == 'Yes' ~ 'Group 3',
+      h_o_rbc_alloantibodies == 'No' & h_o_rbc_autoantibodies == 'No' & Identif_RBC_Alloantiboies == 'No' ~ 'Group 4',
+    )
+  ) 
+
+# data2_filter %>% 
+#   dplyr::filter(patient_id == 12) %>% 
+#   dplyr::select(patient_id, RCE_Procedure, DeltaHbA) %>% 
+#   View()
 
 tab2_names <- 
   tab2_names %>% 

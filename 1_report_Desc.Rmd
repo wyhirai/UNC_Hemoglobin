@@ -204,11 +204,10 @@ data2_filter %>%
 
 ```{r}
 data1_filter %>% 
-  dplyr::count(
-    rbc_antibodies_new,
-    h_o_rbc_alloantibodies,
-    h_o_rbc_autoantibodies,
-    allo_ab_1_yes_0_no) %>% 
+  dplyr::count(rbc_antibodies_new,
+               h_o_rbc_alloantibodies, 
+               h_o_rbc_autoantibodies,
+               Identif_RBC_Alloantiboies) %>% 
   flextable::flextable() %>% 
   flextable::theme_vanilla() %>% 
   flextable::set_caption(caption = 'Nova variável')
@@ -370,6 +369,35 @@ fitmixed_deltaporc %>%
   gtsummary::as_flex_table() %>%
   flextable::theme_vanilla() %>% 
   flextable::set_caption(caption = 'Regressão Linear Múltipla Mista')
+```
+
+# Análise 3 - created a variables rbc_antibodies_new que utiliza H/O RBC Allontibodies ? H/O RBC Autoantibodies e allob (1 = yes, 0 = no)
+
+## Análise Univariada para Delta HBC (g/dL)
+
+```{r}
+data_selected <- 
+  data2_filter_gdL %>% 
+  dplyr::select(patient_id, DeltaHbA_gdL) %>% 
+  dplyr::group_by(patient_id) %>% 
+  dplyr::summarise(mean_DeltaHbA_Porc = mean(DeltaHbA_gdL, na.rm = T)) %>% 
+  dplyr::left_join(data1_filter %>% 
+                     dplyr::select(patient_1, rbc_antibodies_new) 
+                   ,by = join_by('patient_id' == 'patient_1')) 
+```
+
+```{r}
+data_selected %>% 
+  dplyr::select(!patient_id) %>% 
+  gtsummary::tbl_uvregression(
+    y = mean_DeltaHbA_Porc,
+    method = lm
+  ) %>% 
+  gtsummary::bold_labels() %>% 
+  gtsummary::modify_header(label = "**Covariables**") %>% 
+  gtsummary::as_flex_table() %>%
+  flextable::theme_vanilla() %>%
+  flextable::set_caption(caption = 'Modelo de regressão linear simples')
 ```
 
 # Análise 4 - Created new group to SCD Genotype. Excluding HbS beta Indianopolis, Other e sickle cell beta plus thalassemia and grouped S/beta zero thalassemia with SS for Group 1, and SS for group 2 (SCD_genotype_2CAT)
